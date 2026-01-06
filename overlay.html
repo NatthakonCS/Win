@@ -2,35 +2,29 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Stream Overlay Only Numbers</title>
+    <title>Stream Overlay Auto Update</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@900&display=swap" rel="stylesheet">
     <style>
         body {
-            /* พื้นหลังโปร่งใส */
             background-color: transparent !important;
             margin: 0;
             padding: 0;
             overflow: hidden;
-            /* จัดตำแหน่ง */
             display: flex;
             align-items: center;
-            justify-content: flex-start; /* จัดชิดซ้าย (หรือเปลี่ยนเป็น center ถ้าอยากให้อยู่ตรงกลาง) */
+            justify-content: flex-start;
             height: 100vh;
         }
 
         .overlay-container {
             font-family: 'Poppins', sans-serif;
-            /* ขนาดตัวอักษรตั้งต้น (ไปย่อขยายต่อใน TikTok Live ได้) */
             font-size: 120px; 
-            font-weight: 900; /* หนาที่สุด */
-            color: #ffffff; /* สีขาว */
-            
-            /* ใส่ขอบดำรอบตัวหนังสือ (Stroke) เพื่อให้เห็นชัดทุกสภาพแสง */
+            font-weight: 900;
+            color: #ffffff;
             -webkit-text-stroke: 3px black; 
-            text-shadow: 5px 5px 0px #000000; /* เงาดำเพิ่มมิติ */
-            
+            text-shadow: 5px 5px 0px #000000;
             line-height: 1;
-            padding-left: 10px; /* เว้นระยะจากขอบนิดหน่อย */
+            padding-left: 10px;
         }
     </style>
 </head>
@@ -41,21 +35,83 @@
     </div>
 
     <script>
+        // ฟังก์ชันอัปเดตข้อมูล
         function update() {
-            // ดึงข้อมูลจาก LocalStorage
             const wins = localStorage.getItem('stream_wins') || '0';
             const target = localStorage.getItem('stream_target') || '5';
             
-            // แสดงผล
-            document.getElementById('displayWins').innerText = wins;
-            document.getElementById('displayTarget').innerText = target;
+            // เช็คว่าค่าเปลี่ยนจริงไหมถึงจะแก้ (เพื่อประหยัดทรัพยากร)
+            const elWins = document.getElementById('displayWins');
+            const elTarget = document.getElementById('displayTarget');
+
+            if (elWins.innerText !== wins) elWins.innerText = wins;
+            if (elTarget.innerText !== target) elTarget.innerText = target;
         }
 
-        // อัปเดตทันทีที่เปิดหน้า
+        // 1. ทำงานทันทีเมื่อเปิด
         update();
 
-        // รอฟังคำสั่งจากหน้า Control Panel
-        window.addEventListener('storage', update);
+        // 2. ไม้ตาย: สั่งให้ทำงานซ้ำทุกๆ 0.5 วินาที (500ms)
+        // วิธีนี้จะแก้ปัญหา Local File ไม่คุยกันได้ 100%
+        setInterval(update, 500); 
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>Stream Overlay Auto Update</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background-color: transparent !important;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            height: 100vh;
+        }
+
+        .overlay-container {
+            font-family: 'Poppins', sans-serif;
+            font-size: 120px; 
+            font-weight: 900;
+            color: #ffffff;
+            -webkit-text-stroke: 3px black; 
+            text-shadow: 5px 5px 0px #000000;
+            line-height: 1;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay-container">
+        <span id="displayWins">0</span>/<span id="displayTarget">5</span>
+    </div>
+
+    <script>
+        // ฟังก์ชันอัปเดตข้อมูล
+        function update() {
+            const wins = localStorage.getItem('stream_wins') || '0';
+            const target = localStorage.getItem('stream_target') || '5';
+            
+            // เช็คว่าค่าเปลี่ยนจริงไหมถึงจะแก้ (เพื่อประหยัดทรัพยากร)
+            const elWins = document.getElementById('displayWins');
+            const elTarget = document.getElementById('displayTarget');
+
+            if (elWins.innerText !== wins) elWins.innerText = wins;
+            if (elTarget.innerText !== target) elTarget.innerText = target;
+        }
+
+        // 1. ทำงานทันทีเมื่อเปิด
+        update();
+
+        // 2. ไม้ตาย: สั่งให้ทำงานซ้ำทุกๆ 0.5 วินาที (500ms)
+        // วิธีนี้จะแก้ปัญหา Local File ไม่คุยกันได้ 100%
+        setInterval(update, 500); 
     </script>
 </body>
 </html>
