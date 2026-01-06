@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Win Counter Control (EMQX)</title>
+    <title>Ultimate Control Panel</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
@@ -11,29 +11,54 @@
 <body>
 
 <div class="dashboard-container">
-    <h1>🚀 แผงควบคุม (Server ใหม่)</h1>
+    <h1>🎛️ Ultimate Control</h1>
     
+    <div style="text-align: center; margin-bottom: 10px;">
+        สถานะ: <span id="statusText" style="color: orange;">กำลังเชื่อมต่อ...</span>
+    </div>
+
     <div class="card settings">
-        <div style="text-align: center; margin-bottom: 15px;">
-            สถานะ: <span id="statusText" style="color: orange;">กำลังเชื่อมต่อ...</span>
-        </div>
-        
-        <label>🔗 ลิงก์สำหรับใส่ใน TikTok / OBS:</label>
+        <h2>🔗 ลิงก์ Overlay</h2>
         <div style="display: flex; gap: 5px; margin-top: 5px;">
-            <input type="text" id="overlayLinkInput" readonly style="font-size: 0.9rem;">
-            <button id="btnCopy" class="btn btn-primary" style="padding: 10px;">Copy</button>
+            <input type="text" id="overlayLinkInput" readonly style="font-size: 0.9rem; color: #aaa;">
+            <button id="btnCopy" class="btn btn-primary" style="padding: 10px 15px; font-size: 0.9rem;">Copy</button>
+        </div>
+    </div>
+
+    <div class="card settings">
+        <h2>⌨️ ตั้งค่าปุ่มลัด (Hotkeys)</h2>
+        <p class="hint">คลิกที่ช่อง แล้วกดปุ่มคีย์บอร์ดที่ต้องการ</p>
+        <div class="setting-group">
+            <label>ปุ่มเพิ่ม (+ Win):</label>
+            <input type="text" id="hkPlus" placeholder="กดปุ่มเพื่อตั้งค่า..." readonly>
+        </div>
+        <div class="setting-group">
+            <label>ปุ่มลด (- Win):</label>
+            <input type="text" id="hkMinus" placeholder="กดปุ่มเพื่อตั้งค่า..." readonly>
+        </div>
+    </div>
+
+    <div class="card settings">
+        <h2>🔊 ตั้งค่าเสียง (Sound URL)</h2>
+        <div class="setting-group">
+            <label>เสียงเมื่อชนะ (+):</label>
+            <input type="text" id="soundWinUrl" value="https://cdn.discordapp.com/attachments/1376544131970764942/1458210723145711757/Guitar_Plink_Slide_13.wav?ex=695ed010&is=695d7e90&hm=96997d98e1feedab17023a3e21fea620569a042bb2cbc916e69d848d538bcaba&">
+        </div>
+        <div class="setting-group">
+            <label>เสียงเมื่อลด (-):</label>
+            <input type="text" id="soundLoseUrl" value="https://cdn.discordapp.com/attachments/1376544131970764942/1458215319830134889/the-loud-house-music_-vibe-link-b.mp3?ex=695ed458&is=695d82d8&hm=5aa663d31f6eb1f7b5fd4ff651beb32e28818ab30e8014452caa86fa582d5ac1&">
         </div>
     </div>
 
     <div class="card main-stats">
         <div class="stat-group">
             <label>Wins:</label>
-            <input type="number" id="currentWinInput" value="0" min="0">
+            <input type="number" id="currentWinInput" value="0">
         </div>
         <div class="stat-separator">/</div>
         <div class="stat-group">
             <label>Target:</label>
-            <input type="number" id="targetWinInput" value="5" min="1">
+            <input type="number" id="targetWinInput" value="5">
         </div>
     </div>
 
@@ -47,17 +72,15 @@
 </div>
 
 <script>
-    // --- ตั้งชื่อห้องตรงนี้ (ต้องเหมือนกันทั้ง 2 ไฟล์) ---
+    // --- ตั้งค่าระบบ ---
     const ROOM_TOPIC = 'coolkris_room_999'; 
-
-    // *** เปลี่ยนเซิร์ฟเวอร์ตรงนี้ครับ ***
     const MQTT_HOST = 'wss://broker.emqx.io:8084/mqtt';
 
     let client;
     let currentWins = 0;
     let targetWins = 5;
-
-    // สร้างลิงก์อัตโนมัติ
+    
+    // --- 1. ระบบสร้างลิงก์อัตโนมัติ ---
     const currentURL = window.location.href;
     const overlayURL = currentURL.substring(0, currentURL.lastIndexOf('/')) + '/overlay.html';
     document.getElementById('overlayLinkInput').value = overlayURL;
@@ -66,183 +89,93 @@
         const copyText = document.getElementById("overlayLinkInput");
         copyText.select();
         document.execCommand("copy");
+        const originalText = document.getElementById('btnCopy').innerText;
         document.getElementById('btnCopy').innerText = "Copied!";
-        setTimeout(() => document.getElementById('btnCopy').innerText = "Copy", 2000);
+        setTimeout(() => document.getElementById('btnCopy').innerText = originalText, 2000);
     });
 
+    // --- 2. ระบบ Hotkey ---
+    let keyPlus = localStorage.getItem('hk_plus') || '';
+    let keyMinus = localStorage.getItem('hk_minus') || '';
+    
+    document.getElementById('hkPlus').value = keyPlus;
+    document.getElementById('hkMinus').value = keyMinus;
+
+    function setupHotkey(inputId, storageKey, type) {
+        const el = document.getElementById(inputId);
+        el.addEventListener('keydown', (e) => {
+            e.preventDefault();
+            const code = e.code;
+            el.value = code;
+            localStorage.setItem(storageKey, code);
+            if(type === 'plus') keyPlus = code;
+            if(type === 'minus') keyMinus = code;
+            el.blur();
+        });
+    }
+    setupHotkey('hkPlus', 'hk_plus', 'plus');
+    setupHotkey('hkMinus', 'hk_minus', 'minus');
+
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.code === keyPlus && keyPlus !== '') doPlus();
+        else if (e.code === keyMinus && keyMinus !== '') doMinus();
+    });
+
+    // --- 3. ระบบ MQTT ---
     function connectMQTT() {
         const clientId = 'ctrl_' + Math.random().toString(16).substr(2, 8);
-        console.log("Connecting to " + MQTT_HOST);
-
-        client = mqtt.connect(MQTT_HOST, { 
-            clientId: clientId,
-            clean: true,
-            connectTimeout: 4000,
-        });
+        client = mqtt.connect(MQTT_HOST, { clientId: clientId, clean: true });
 
         client.on('connect', () => {
-            console.log("Connected!");
-            document.getElementById('statusText').innerText = "🟢 ออนไลน์ (พร้อมใช้งาน)";
+            document.getElementById('statusText').innerText = "🟢 พร้อมใช้งาน";
             document.getElementById('statusText').style.color = "#4ade80";
-            sendData();
+            sendData(null);
         });
         
         client.on('error', (err) => {
-            console.error(err);
-            document.getElementById('statusText').innerText = "🔴 เชื่อมต่อไม่ได้ (ลองรีเฟรช)";
+            document.getElementById('statusText').innerText = "🔴 เชื่อมต่อไม่ได้";
             document.getElementById('statusText').style.color = "red";
         });
     }
 
-    function sendData() {
+    function sendData(playAudioType = null) {
         if (!client || !client.connected) return;
-        const data = JSON.stringify({ wins: currentWins, target: targetWins });
+        const data = JSON.stringify({
+            wins: currentWins,
+            target: targetWins,
+            soundWin: document.getElementById('soundWinUrl').value,
+            soundLose: document.getElementById('soundLoseUrl').value,
+            playSound: playAudioType 
+        });
         client.publish(ROOM_TOPIC, data, { retain: true });
     }
 
-    // Logic ปุ่มกด
-    document.getElementById('btnPlus').addEventListener('click', () => {
-        currentWins++; updateInputs(); sendData();
-    });
-    document.getElementById('btnMinus').addEventListener('click', () => {
-        if(currentWins > 0) currentWins--; updateInputs(); sendData();
-    });
-    document.getElementById('btnReset').addEventListener('click', () => {
-        currentWins = 0; updateInputs(); sendData();
-    });
+    // --- 4. Logic การทำงาน ---
+    function doPlus() {
+        currentWins++; updateInputs(); sendData('win');
+    }
     
+    function doMinus() {
+        // ติดลบได้ (ตามที่ขอไว้)
+        currentWins--; 
+        updateInputs(); 
+        sendData('lose');
+    }
+
+    function doReset() {
+        currentWins = 0; updateInputs(); sendData(null);
+    }
+
+    document.getElementById('btnPlus').addEventListener('click', doPlus);
+    document.getElementById('btnMinus').addEventListener('click', doMinus);
+    document.getElementById('btnReset').addEventListener('click', doReset);
+
     const winInput = document.getElementById('currentWinInput');
     const targetInput = document.getElementById('targetWinInput');
 
-    winInput.addEventListener('change', (e) => { currentWins = parseInt(e.target.value) || 0; sendData(); });
-    targetInput.addEventListener('change', (e) => { targetWins = parseInt(e.target.value) || 1; sendData(); });
-
-    function updateInputs() {
-        winInput.value = currentWins;
-        targetInput.value = targetWins;
-    }
-
-    connectMQTT();
-</script>
-</body>
-</html><!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Win Counter Control (EMQX)</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
-</head>
-<body>
-
-<div class="dashboard-container">
-    <h1>🚀 แผงควบคุม (Server ใหม่)</h1>
-    
-    <div class="card settings">
-        <div style="text-align: center; margin-bottom: 15px;">
-            สถานะ: <span id="statusText" style="color: orange;">กำลังเชื่อมต่อ...</span>
-        </div>
-        
-        <label>🔗 ลิงก์สำหรับใส่ใน TikTok / OBS:</label>
-        <div style="display: flex; gap: 5px; margin-top: 5px;">
-            <input type="text" id="overlayLinkInput" readonly style="font-size: 0.9rem;">
-            <button id="btnCopy" class="btn btn-primary" style="padding: 10px;">Copy</button>
-        </div>
-    </div>
-
-    <div class="card main-stats">
-        <div class="stat-group">
-            <label>Wins:</label>
-            <input type="number" id="currentWinInput" value="0" min="0">
-        </div>
-        <div class="stat-separator">/</div>
-        <div class="stat-group">
-            <label>Target:</label>
-            <input type="number" id="targetWinInput" value="5" min="1">
-        </div>
-    </div>
-
-    <div class="card controls">
-        <div class="button-group large-buttons">
-            <button id="btnMinus" class="btn btn-danger">-</button>
-            <button id="btnPlus" class="btn btn-success">+</button>
-        </div>
-        <button id="btnReset" class="btn btn-secondary btn-block">Reset</button>
-    </div>
-</div>
-
-<script>
-    // --- ตั้งชื่อห้องตรงนี้ (ต้องเหมือนกันทั้ง 2 ไฟล์) ---
-    const ROOM_TOPIC = 'coolkris_room_999'; 
-
-    // *** เปลี่ยนเซิร์ฟเวอร์ตรงนี้ครับ ***
-    const MQTT_HOST = 'wss://broker.emqx.io:8084/mqtt';
-
-    let client;
-    let currentWins = 0;
-    let targetWins = 5;
-
-    // สร้างลิงก์อัตโนมัติ
-    const currentURL = window.location.href;
-    const overlayURL = currentURL.substring(0, currentURL.lastIndexOf('/')) + '/overlay.html';
-    document.getElementById('overlayLinkInput').value = overlayURL;
-
-    document.getElementById('btnCopy').addEventListener('click', () => {
-        const copyText = document.getElementById("overlayLinkInput");
-        copyText.select();
-        document.execCommand("copy");
-        document.getElementById('btnCopy').innerText = "Copied!";
-        setTimeout(() => document.getElementById('btnCopy').innerText = "Copy", 2000);
-    });
-
-    function connectMQTT() {
-        const clientId = 'ctrl_' + Math.random().toString(16).substr(2, 8);
-        console.log("Connecting to " + MQTT_HOST);
-
-        client = mqtt.connect(MQTT_HOST, { 
-            clientId: clientId,
-            clean: true,
-            connectTimeout: 4000,
-        });
-
-        client.on('connect', () => {
-            console.log("Connected!");
-            document.getElementById('statusText').innerText = "🟢 ออนไลน์ (พร้อมใช้งาน)";
-            document.getElementById('statusText').style.color = "#4ade80";
-            sendData();
-        });
-        
-        client.on('error', (err) => {
-            console.error(err);
-            document.getElementById('statusText').innerText = "🔴 เชื่อมต่อไม่ได้ (ลองรีเฟรช)";
-            document.getElementById('statusText').style.color = "red";
-        });
-    }
-
-    function sendData() {
-        if (!client || !client.connected) return;
-        const data = JSON.stringify({ wins: currentWins, target: targetWins });
-        client.publish(ROOM_TOPIC, data, { retain: true });
-    }
-
-    // Logic ปุ่มกด
-    document.getElementById('btnPlus').addEventListener('click', () => {
-        currentWins++; updateInputs(); sendData();
-    });
-    document.getElementById('btnMinus').addEventListener('click', () => {
-        if(currentWins > 0) currentWins--; updateInputs(); sendData();
-    });
-    document.getElementById('btnReset').addEventListener('click', () => {
-        currentWins = 0; updateInputs(); sendData();
-    });
-    
-    const winInput = document.getElementById('currentWinInput');
-    const targetInput = document.getElementById('targetWinInput');
-
-    winInput.addEventListener('change', (e) => { currentWins = parseInt(e.target.value) || 0; sendData(); });
-    targetInput.addEventListener('change', (e) => { targetWins = parseInt(e.target.value) || 1; sendData(); });
+    winInput.addEventListener('change', (e) => { currentWins = parseInt(e.target.value)||0; sendData(null); });
+    targetInput.addEventListener('change', (e) => { targetWins = parseInt(e.target.value)||1; sendData(null); });
 
     function updateInputs() {
         winInput.value = currentWins;
