@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Win Counter Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="dashboard-container">
+    <h1>🎮 Win Counter Controls</h1>
+
+    <div class="card main-stats">
+        <div class="stat-group">
+            <label for="currentWinInput">Current Wins (ชนะปัจจุบัน):</label>
+            <input type="number" id="currentWinInput" value="0" min="0">
+        </div>
+        <div class="stat-separator">/</div>
+        <div class="stat-group">
+            <label for="targetWinInput">Target (เป้าหมาย):</label>
+            <input type="number" id="targetWinInput" value="5" min="1">
+        </div>
+    </div>
+
+    <div class="card controls">
+        <h2>Quick Actions</h2>
+        <div class="button-group large-buttons">
+            <button id="btnMinus" class="btn btn-danger">- Win</button>
+            <button id="btnPlus" class="btn btn-success">+ Win</button>
+        </div>
+        <button id="btnReset" class="btn btn-secondary btn-block">Reset Wins to 0</button>
+    </div>
+
+     <div class="card settings">
+        <h2>⌨️ Hotkeys Setup</h2>
+        <p class="hint">คลิกที่ช่องแล้วกดปุ่มที่ต้องการตั้งค่า</p>
+        <div class="setting-group">
+            <label for="hotkeyPlus">Hotkey (+ Win):</label>
+            <input type="text" id="hotkeyPlus" placeholder="Press a key..." readonly>
+        </div>
+        <div class="setting-group">
+            <label for="hotkeyMinus">Hotkey (- Win):</label>
+            <input type="text" id="hotkeyMinus" placeholder="Press a key..." readonly>
+        </div>
+    </div>
+
+    <div class="card settings">
+        <h2>🔊 Sound Settings (Audio URLs)</h2>
+         <p class="hint">ใส่ลิงก์ไฟล์เสียง .mp3 หรือ .wav ที่อยู่บนเน็ต</p>
+        <div class="setting-group">
+            <label for="soundPlusUrl">Sound on Win (+):</label>
+            <input type="url" id="soundPlusUrl" placeholder="https://example.com/levelup.mp3" value="https://assets.mixkit.co/active_storage/sfx/2578/2578-preview.m4a">
+        </div>
+        <div class="setting-group">
+            <label for="soundMinusUrl">Sound on Loss (-):</label>
+             <input type="url" id="soundMinusUrl" placeholder="https://example.com/fail.mp3" value="https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.m4a">
+        </div>
+    </div>
+
+    <div class="card overlay-link-section">
+        <h2>🔗 Overlay Link for OBS/Streamlabs</h2>
+        <p class="hint">คัดลอกลิงก์ด้านล่างไปใส่ใน Browser Source</p>
+        <input type="text" id="overlayLinkOutput" readonly>
+        <button id="btnCopyLink" class="btn btn-primary btn-block">Copy Link</button>
+    </div>
+
+</div>
+
+<audio id="audioPlayer"></audio>
+
+<script src="script.js"></script>
+</body>
+</html>
