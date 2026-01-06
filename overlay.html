@@ -2,116 +2,68 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>Stream Overlay Auto Update</title>
+    <title>Realtime Overlay (EMQX)</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/4.3.7/mqtt.min.js"></script>
     <style>
         body {
             background-color: transparent !important;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
+            margin: 0; padding: 0; overflow: hidden;
+            display: flex; align-items: center; justify-content: flex-start;
             height: 100vh;
         }
-
         .overlay-container {
             font-family: 'Poppins', sans-serif;
-            font-size: 120px; 
-            font-weight: 900;
-            color: #ffffff;
-            -webkit-text-stroke: 3px black; 
-            text-shadow: 5px 5px 0px #000000;
-            line-height: 1;
-            padding-left: 10px;
+            font-size: 120px; font-weight: 900; color: #ffffff;
+            -webkit-text-stroke: 3px black; text-shadow: 5px 5px 0px #000000;
+            line-height: 1; padding-left: 10px;
+        }
+        .pop { animation: pop 0.2s ease-in-out; }
+        @keyframes pop {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
         }
     </style>
 </head>
 <body>
-
-    <div class="overlay-container">
+    <div class="overlay-container" id="container">
         <span id="displayWins">0</span>/<span id="displayTarget">5</span>
     </div>
-
     <script>
-        // ฟังก์ชันอัปเดตข้อมูล
-        function update() {
-            const wins = localStorage.getItem('stream_wins') || '0';
-            const target = localStorage.getItem('stream_target') || '5';
-            
-            // เช็คว่าค่าเปลี่ยนจริงไหมถึงจะแก้ (เพื่อประหยัดทรัพยากร)
-            const elWins = document.getElementById('displayWins');
-            const elTarget = document.getElementById('displayTarget');
+        // *** ต้องตรงกับ index.html ***
+        const ROOM_TOPIC = 'coolkris_room_999'; 
+        const MQTT_HOST = 'wss://broker.emqx.io:8084/mqtt'; // Server ใหม่
+        
+        const clientId = 'overlay_' + Math.random().toString(16).substr(2, 8);
+        const displayWins = document.getElementById('displayWins');
+        const displayTarget = document.getElementById('displayTarget');
+        const container = document.getElementById('container');
+        
+        console.log("Connecting...");
+        const client = mqtt.connect(MQTT_HOST, { 
+            clientId: clientId,
+            clean: true,
+            connectTimeout: 4000,
+        });
 
-            if (elWins.innerText !== wins) elWins.innerText = wins;
-            if (elTarget.innerText !== target) elTarget.innerText = target;
-        }
+        client.on('connect', () => {
+            console.log("Connected!");
+            client.subscribe(ROOM_TOPIC);
+        });
 
-        // 1. ทำงานทันทีเมื่อเปิด
-        update();
-
-        // 2. ไม้ตาย: สั่งให้ทำงานซ้ำทุกๆ 0.5 วินาที (500ms)
-        // วิธีนี้จะแก้ปัญหา Local File ไม่คุยกันได้ 100%
-        setInterval(update, 500); 
-    </script>
-</body>
-</html><!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <title>Stream Overlay Auto Update</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@900&display=swap" rel="stylesheet">
-    <style>
-        body {
-            background-color: transparent !important;
-            margin: 0;
-            padding: 0;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            height: 100vh;
-        }
-
-        .overlay-container {
-            font-family: 'Poppins', sans-serif;
-            font-size: 120px; 
-            font-weight: 900;
-            color: #ffffff;
-            -webkit-text-stroke: 3px black; 
-            text-shadow: 5px 5px 0px #000000;
-            line-height: 1;
-            padding-left: 10px;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="overlay-container">
-        <span id="displayWins">0</span>/<span id="displayTarget">5</span>
-    </div>
-
-    <script>
-        // ฟังก์ชันอัปเดตข้อมูล
-        function update() {
-            const wins = localStorage.getItem('stream_wins') || '0';
-            const target = localStorage.getItem('stream_target') || '5';
-            
-            // เช็คว่าค่าเปลี่ยนจริงไหมถึงจะแก้ (เพื่อประหยัดทรัพยากร)
-            const elWins = document.getElementById('displayWins');
-            const elTarget = document.getElementById('displayTarget');
-
-            if (elWins.innerText !== wins) elWins.innerText = wins;
-            if (elTarget.innerText !== target) elTarget.innerText = target;
-        }
-
-        // 1. ทำงานทันทีเมื่อเปิด
-        update();
-
-        // 2. ไม้ตาย: สั่งให้ทำงานซ้ำทุกๆ 0.5 วินาที (500ms)
-        // วิธีนี้จะแก้ปัญหา Local File ไม่คุยกันได้ 100%
-        setInterval(update, 500); 
+        client.on('message', (topic, message) => {
+            try {
+                const data = JSON.parse(message.toString());
+                if (displayWins.innerText != data.wins) {
+                    displayWins.innerText = data.wins;
+                    container.classList.remove('pop');
+                    void container.offsetWidth; 
+                    container.classList.add('pop');
+                }
+                displayTarget.innerText = data.target;
+            } catch (e) { console.error(e); }
+        });
     </script>
 </body>
 </html>
